@@ -3,8 +3,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Poppins } from "next/font/google";
 
+// Font configuration
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
+// Types for recipes and ingredients returned by API
 type Ingredient = { id: number; original: string };
 type Recipe = {
   id: number;
@@ -15,20 +17,36 @@ type Recipe = {
 };
 
 export default function Home() {
+  // User search input
   const [query, setQuery] = useState("");
+
+  // Debounced search input to avoid rapid API calls
   const [debouncedQuery, setDebouncedQuery] = useState(query);
+
+  // List of search results
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+
+  // General loading state for fetching recipe list
   const [loading, setLoading] = useState(false);
+
+  // Error message for failed API requests
   const [error, setError] = useState<string | null>(null);
+
+  // Currently selected recipe for detail view
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+
+  // Loading state for fetching detailed recipe info
   const [detailsLoading, setDetailsLoading] = useState(false);
 
+  // Debounce logic: wait 500ms after user stops typing before firing search
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedQuery(query), 500);
     return () => clearTimeout(handler);
   }, [query]);
 
+  // Fetch recipes whenever debouncedQuery changes
   useEffect(() => {
+    // If search input is empty, clear results
     if (!debouncedQuery.trim()) {
       setRecipes([]);
       return;
@@ -37,10 +55,12 @@ export default function Home() {
     async function fetchRecipes() {
       setLoading(true);
       setError(null);
-      setSelectedRecipe(null);
+      setSelectedRecipe(null); // Reset details when searching new query
+
       try {
         const res = await fetch(`/api?q=${encodeURIComponent(debouncedQuery)}`);
         if (!res.ok) throw new Error("Failed to fetch recipes");
+
         const data = await res.json();
         setRecipes(data.results || []);
       } catch (err) {
@@ -53,11 +73,13 @@ export default function Home() {
     fetchRecipes();
   }, [debouncedQuery]);
 
+  // Fetch full recipe details by ID
   async function fetchRecipeDetails(id: number) {
     setDetailsLoading(true);
     try {
       const res = await fetch(`/api/details?id=${id}`);
       if (!res.ok) throw new Error("Failed to fetch recipe details");
+
       const data = await res.json();
       setSelectedRecipe(data);
     } catch {
@@ -95,13 +117,15 @@ export default function Home() {
           )}
         </div>
 
-        {/* Loading & errors */}
+        {/* Loading and error messages */}
         {loading && (
-          <div className="animate-pulse text-zinc-600 dark:text-zinc-400">Fetching recipes...</div>
+          <div className="animate-pulse text-zinc-600 dark:text-zinc-400">
+            Fetching recipes...
+          </div>
         )}
         {error && <p className="text-red-600 dark:text-red-400">{error}</p>}
 
-        {/* Results */}
+        {/* Recipe list (when not loading and no recipe selected) */}
         {!loading && !selectedRecipe && recipes.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 w-full">
             {recipes.map((recipe) => (
@@ -131,20 +155,23 @@ export default function Home() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty state when no recipes match search */}
         {!loading && recipes.length === 0 && query && !error && (
           <p className="text-zinc-600 dark:text-zinc-300 text-lg">
             No recipes found for “{query}”.
           </p>
         )}
 
-        {/* Recipe details */}
+        {/* Detailed recipe view */}
         {selectedRecipe && (
           <div className="w-full mt-6 text-left">
             {detailsLoading ? (
-              <p className="text-zinc-600 dark:text-zinc-400 animate-pulse">Loading details...</p>
+              <p className="text-zinc-600 dark:text-zinc-400 animate-pulse">
+                Loading details...
+              </p>
             ) : (
               <div className="flex flex-col gap-8">
+                {/* Back button to return to search results */}
                 <button
                   onClick={() => setSelectedRecipe(null)}
                   className="text-sm text-amber-600 hover:text-amber-700 font-medium self-start transition-colors"
@@ -152,10 +179,12 @@ export default function Home() {
                   ← Back to results
                 </button>
 
+                {/* Title */}
                 <h2 className="text-4xl font-extrabold text-zinc-800 dark:text-white">
                   {selectedRecipe.title}
                 </h2>
 
+                {/* Main image */}
                 <div className="relative w-full h-80 rounded-2xl overflow-hidden shadow-lg">
                   <Image
                     src={selectedRecipe.image}
@@ -165,11 +194,12 @@ export default function Home() {
                   />
                 </div>
 
+                {/* Ingredients and Instructions sections */}
                 <div className="grid md:grid-cols-2 gap-8">
-                  {/* Ingredients */}
+                  {/* Ingredients list */}
                   <div className="bg-amber-50/60 dark:bg-zinc-800/60 p-6 rounded-2xl shadow-inner">
                     <h3 className="text-xl font-semibold text-amber-700 dark:text-amber-400 mb-3">
-                      🧂 Ingredients
+                      Ingredients
                     </h3>
                     <ul className="list-disc pl-5 space-y-1 text-zinc-700 dark:text-zinc-300 max-h-64 overflow-y-auto">
                       {selectedRecipe.extendedIngredients?.map((ing) => (
@@ -178,10 +208,10 @@ export default function Home() {
                     </ul>
                   </div>
 
-                  {/* Instructions */}
+                  {/* Instructions list */}
                   <div className="bg-amber-50/60 dark:bg-zinc-800/60 p-6 rounded-2xl shadow-inner">
                     <h3 className="text-xl font-semibold text-amber-700 dark:text-amber-400 mb-3">
-                      🥣 Instructions
+                      Instructions
                     </h3>
                     {selectedRecipe.instructions ? (
                       <div className="flex flex-col gap-3 text-zinc-700 dark:text-zinc-300 leading-relaxed max-h-64 overflow-y-auto">
